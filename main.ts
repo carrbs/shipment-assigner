@@ -1,21 +1,13 @@
 import { Command } from "commander";
 import * as fs from "fs";
 import * as figlet from "figlet";
-const munkres = require("munkres-js");
 const gradient = require("gradient-string");
 
-import { getStreetName } from "./addressParser";
-import { calculateSS } from "./suitabilityScore";
+import { calculateAssignments, Assignment } from "./suitabilityScore";
 
 interface Options {
   addressFile: string;
   driverFile: string;
-}
-
-interface Assignment {
-  Driver: string;
-  Address: string;
-  Score: number;
 }
 
 async function main() {
@@ -42,30 +34,6 @@ function getOptions(): Options {
   program.parse(process.argv);
   const options = program.opts() as Options;
   return options;
-}
-
-function calculateAssignments(
-  drivers: string[],
-  addresses: string[]
-): Assignment[] {
-  const streetNames = addresses.map(getStreetName);
-
-  const scores = drivers.map((driver) =>
-    streetNames.map((streetName) => calculateSS(driver, streetName))
-  );
-
-  const indices = munkres(scores);
-
-  let totalSS: number = 0;
-  return indices.map(([driverIndex, addressIndex]) => {
-    const score = scores[driverIndex][addressIndex];
-    totalSS += score;
-    return {
-      Driver: drivers[driverIndex],
-      Address: addresses[addressIndex],
-      Score: score,
-    };
-  });
 }
 
 async function displayBanner(): Promise<void> {

@@ -2,6 +2,7 @@ import { Command } from "commander";
 import * as fs from "fs";
 import { getStreetName } from "./addressParser";
 import { calculateSS } from "./suitabilityScore";
+const munkres = require("munkres-js");
 
 async function main() {
   const program = new Command();
@@ -17,23 +18,18 @@ async function main() {
   const drivers = readLinesFromFile(options.driverFile);
   const streetNames = addresses.map(getStreetName);
 
-  console.log("drivers: ", drivers);
-  console.log("streetNames: ", streetNames);
-  console.log("fullAddresses: ", addresses);
-
   const scores = drivers.map((driver) =>
     streetNames.map((streetName) => calculateSS(driver, streetName))
   );
 
-  const metadata = drivers.map((_, driverIndex) =>
-    addresses.map((_, addressIndex) => ({
-      driver: drivers[driverIndex],
-      address: addresses[addressIndex],
-    }))
-  );
+  const indices = munkres(scores);
 
-  console.log("scores: ", scores);
-  console.log("metadata: ", metadata);
+  indices.forEach(([driverIndex, addressIndex]) => {
+    const score = scores[driverIndex][addressIndex];
+    console.log(
+      `Driver ${drivers[driverIndex]} is assigned to address ${addresses[addressIndex]} with score ${score}`
+    );
+  });
 }
 
 function readLinesFromFile(path: string): string[] {

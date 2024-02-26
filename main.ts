@@ -7,18 +7,47 @@ const gradient = require("gradient-string");
 import { getStreetName } from "./addressParser";
 import { calculateSS } from "./suitabilityScore";
 
+interface Options {
+  addressFile: string;
+  driverFile: string;
+}
+
+interface Assignment {
+  Driver: string;
+  Address: string;
+  Score: number;
+}
+
 async function main() {
+  await displayBanner();
+  const options = getOptions();
+
+  const addresses = readLinesFromFile(options.addressFile);
+  const drivers = readLinesFromFile(options.driverFile);
+
+  const assignments = calculateAssignments(drivers, addresses);
+
+  console.table(assignments);
+  console.log("Total Suitability Score (SS): ", getTotalScore(assignments));
+}
+
+function getOptions(): Options {
   const program = new Command();
+  program.showHelpAfterError();
 
   program
     .requiredOption("-a, --address-file <PATH>", "path to addresses file")
     .requiredOption("-d, --driver-file <PATH>", "path to drivers file");
 
   program.parse(process.argv);
-  const options = program.opts();
+  const options = program.opts() as Options;
+  return options;
+}
 
-  const addresses = readLinesFromFile(options.addressFile);
-  const drivers = readLinesFromFile(options.driverFile);
+function calculateAssignments(
+  drivers: string[],
+  addresses: string[]
+): Assignment[] {
   const streetNames = addresses.map(getStreetName);
 
   const scores = drivers.map((driver) =>
@@ -28,7 +57,7 @@ async function main() {
   const indices = munkres(scores);
 
   let totalSS: number = 0;
-  const assignments = indices.map(([driverIndex, addressIndex]) => {
+  return indices.map(([driverIndex, addressIndex]) => {
     const score = scores[driverIndex][addressIndex];
     totalSS += score;
     return {
@@ -37,7 +66,9 @@ async function main() {
       Score: score,
     };
   });
+}
 
+async function displayBanner(): Promise<void> {
   await figlet.text("ShipmentAssigner", (err: Error | null, data: string) => {
     if (err) {
       console.log("Something went wrong...");
@@ -46,9 +77,10 @@ async function main() {
     }
     console.log(gradient.retro(data));
   });
+}
 
-  console.table(assignments);
-  console.log("Total Suitability Score (SS): ", totalSS);
+function getTotalScore(assignments: Assignment[]): number {
+  return assignments.reduce((total, assignment) => total + assignment.Score, 0);
 }
 
 function readLinesFromFile(path: string): string[] {

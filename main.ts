@@ -1,8 +1,11 @@
 import { Command } from "commander";
 import * as fs from "fs";
+import * as figlet from "figlet";
+const munkres = require("munkres-js");
+const gradient = require("gradient-string");
+
 import { getStreetName } from "./addressParser";
 import { calculateSS } from "./suitabilityScore";
-const munkres = require("munkres-js");
 
 async function main() {
   const program = new Command();
@@ -24,12 +27,28 @@ async function main() {
 
   const indices = munkres(scores);
 
-  indices.forEach(([driverIndex, addressIndex]) => {
+  let totalSS: number = 0;
+  const assignments = indices.map(([driverIndex, addressIndex]) => {
     const score = scores[driverIndex][addressIndex];
-    console.log(
-      `Driver ${drivers[driverIndex]} is assigned to address ${addresses[addressIndex]} with score ${score}`
-    );
+    totalSS += score;
+    return {
+      Driver: drivers[driverIndex],
+      Address: addresses[addressIndex],
+      Score: score,
+    };
   });
+
+  await figlet.text("ShipmentAssigner", (err: Error | null, data: string) => {
+    if (err) {
+      console.log("Something went wrong...");
+      console.dir(err);
+      return;
+    }
+    console.log(gradient.retro(data));
+  });
+
+  console.table(assignments);
+  console.log("Total Suitability Score (SS): ", totalSS);
 }
 
 function readLinesFromFile(path: string): string[] {

@@ -11,6 +11,8 @@
   "license": "ISC",
   "dependencies": {
     "commander": "^12.0.0",
+    "figlet": "^1.7.0",
+    "gradient-string": "^2.0.2",
     "munkres-js": "^1.2.2",
     "parse-address": "^1.1.2"
   },

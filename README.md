@@ -2,7 +2,7 @@
   <img
     width="600"
     src="output.png"
-    alt="Starship – Cross-shell prompt"
+    alt="ShipmentAssigner - Assign routes to drivers using Suitability Scores"
   />
 </p>
 

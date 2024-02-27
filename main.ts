@@ -11,16 +11,20 @@ interface Options {
 }
 
 async function main() {
-  await displayBanner();
-  const options = getOptions();
+  try {
+    await displayBanner();
+    const options = getOptions();
 
-  const addresses = readLinesFromFile(options.addressFile);
-  const drivers = readLinesFromFile(options.driverFile);
+    const addresses = readLinesFromFile(options.addressFile);
+    const drivers = readLinesFromFile(options.driverFile);
 
-  const assignments = calculateAssignments(drivers, addresses);
+    const assignments = calculateAssignments(drivers, addresses);
 
-  console.table(assignments);
-  console.log("Total Suitability Score (SS): ", getTotalScore(assignments));
+    console.table(assignments);
+    console.log("Total Suitability Score (SS): ", getTotalScore(assignments));
+  } catch (error) {
+    console.log("an error occurred: ", error);
+  }
 }
 
 function getOptions(): Options {
@@ -28,8 +32,28 @@ function getOptions(): Options {
   program.showHelpAfterError();
 
   program
-    .requiredOption("-a, --address-file <PATH>", "path to addresses file")
-    .requiredOption("-d, --driver-file <PATH>", "path to drivers file");
+    .requiredOption(
+      "-a, --address-file <PATH>",
+      "path to addresses file",
+      (path) => {
+        if (!fs.existsSync(path)) {
+          console.error(`Invalid path! no file found at ${path}`);
+          program.help();
+        }
+        return path;
+      }
+    )
+    .requiredOption(
+      "-d, --driver-file <PATH>",
+      "path to drivers file",
+      (path) => {
+        if (!fs.existsSync(path)) {
+          console.error(`Invalid path! no file found at ${path}`);
+          program.help();
+        }
+        return path;
+      }
+    );
 
   program.parse(process.argv);
   const options = program.opts() as Options;
@@ -43,7 +67,8 @@ async function displayBanner(): Promise<void> {
       console.dir(err);
       return;
     }
-    console.log(gradient.retro(data));
+    console.log(data);
+    // console.log(gradient.retro(data));
   });
 }
 

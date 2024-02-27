@@ -1,3 +1,11 @@
+<p align="center">
+  <img
+    width="600"
+    src="output.png"
+    alt="Starship – Cross-shell prompt"
+  />
+</p>
+
 # ShipmentAssigner
 
 ---

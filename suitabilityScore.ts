@@ -39,11 +39,17 @@ function getScores(
   drivers: string[],
   streetNames: string[]
 ): [number[][], number] {
+  let maxScore = 0;
   let scores = drivers.map((driver) =>
-    streetNames.map((streetName) => calculateSS(driver, streetName))
+    streetNames.map((streetName) => {
+      let score = calculateSS(driver, streetName);
+      if (score > maxScore) {
+        maxScore = score;
+      }
+      return score;
+    })
   );
 
-  const maxScore = Math.max(...scores.flat());
   scores = scores.map((driverScores) =>
     driverScores.map((score) => maxScore - score)
   );

@@ -4,6 +4,7 @@ import * as figlet from "figlet";
 const gradient = require("gradient-string");
 
 import { calculateAssignments, Assignment } from "./suitabilityScore";
+import { generateInputFiles } from "./inputGenerator";
 
 interface Options {
   addressFile: string;
@@ -13,25 +14,18 @@ interface Options {
 async function main() {
   try {
     await displayBanner();
-    const options = getOptions();
-
-    const addresses = readLinesFromFile(options.addressFile);
-    const drivers = readLinesFromFile(options.driverFile);
-
-    const assignments = calculateAssignments(drivers, addresses);
-
-    console.table(assignments);
-    console.log("Total Suitability Score (SS): ", getTotalScore(assignments));
+    invokeCLI();
   } catch (error) {
     console.log("an error occurred: ", error);
   }
 }
 
-function getOptions(): Options {
+function invokeCLI(): void {
   const program = new Command();
   program.showHelpAfterError();
 
   program
+    .command("assign")
     .requiredOption(
       "-a, --address-file <PATH>",
       "path to addresses file",
@@ -53,11 +47,35 @@ function getOptions(): Options {
         }
         return path;
       }
-    );
+    )
+    .action(assignHandler);
+
+  program
+    .command("generate")
+    .description("Generate input files")
+    .option(
+      "-a --addresses [number]",
+      "Number of fake addresses to generate (default: 100)"
+    )
+    .option(
+      "-d --drivers [number]",
+      "Number of fake driver names to generate. (default: 100)"
+    )
+    .action((options) => {
+      generateInputFiles(options.addresses, options.drivers);
+    });
 
   program.parse(process.argv);
-  const options = program.opts() as Options;
-  return options;
+}
+
+function assignHandler(options: Options): void {
+  const addresses = readLinesFromFile(options.addressFile);
+  const drivers = readLinesFromFile(options.driverFile);
+
+  const assignments = calculateAssignments(drivers, addresses);
+
+  console.table(assignments);
+  console.log("Total Suitability Score (SS): ", getTotalScore(assignments));
 }
 
 async function displayBanner(): Promise<void> {
@@ -67,8 +85,7 @@ async function displayBanner(): Promise<void> {
       console.dir(err);
       return;
     }
-    console.log(data);
-    // console.log(gradient.retro(data));
+    console.log(gradient.retro(data));
   });
 }
 

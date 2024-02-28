@@ -3,7 +3,6 @@ import {
   calculateSS,
   getScores,
 } from "./suitabilityScore";
-import { getStreetName } from "./addressParser";
 
 describe("calculateAssignments", () => {
   test("when there are equal numbers of drivers and addresses", () => {
@@ -124,6 +123,7 @@ describe("calculateSS", () => {
     });
   });
 });
+
 test("getScores converts scores to cost matrix", () => {
   const drivers = ["Daniel Davidson", "John Doe"];
   const streetNames = ["Fremont", "Burnside"];

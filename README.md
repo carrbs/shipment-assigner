@@ -1,3 +1,5 @@
+# ShipmentAssigner
+
 <p align="center">
   <img
     width="600"
@@ -5,8 +7,6 @@
     alt="ShipmentAssigner - Assign routes to drivers using Suitability Scores"
   />
 </p>
-
-# ShipmentAssigner
 
 ---
 
@@ -18,14 +18,16 @@
   - [Usage / Example](#usage--example)
     - [Assignment (command: `assign`)](#assignment-command-assign)
     - [Test File Generation (command: `generate`)](#test-file-generation-command-generate)
-  - [Assumptions](#assumptions)
   - [Approach](#approach)
-    - [Calculating the Suitability Score (per the spec)](#calculating-the-suitability-score-per-the-spec)
+  - [Assumptions](#assumptions)
   - [Build](#build)
     - [Prerequisites](#prerequisites)
     - [Downloading the Code](#downloading-the-code)
     - [Building and Running the Application](#building-and-running-the-application)
   - [Running tests](#running-tests)
+  - [Understanding the Algorithms](#understanding-the-algorithms)
+    - [Calculating the Suitability Score (per the spec)](#calculating-the-suitability-score-per-the-spec)
+    - [Converting Suitability Scores matrix to a cost matrix](#converting-suitability-scores-matrix-to-a-cost-matrix)
 
 ## Introduction
 
@@ -34,7 +36,7 @@ The program runs on the command line and takes as input two newline separated fi
 
 ## Usage / Example
 
-The application is invoked from the command line on a Mac or Linux machine. Running the application with `-h / --help` flags will display Usage information:
+The application is invoked from the command line on a Mac or Linux machine. Running the application with help flags will display Usage information:
 
 ```
 ➜ node main.js -h
@@ -57,7 +59,7 @@ Commands:
 
 ### Assignment (command: `assign`)
 
-If the program is run with valid parameters, a table is printed to stdout with The driver assignments, SS for each assignment, and a total SS score over all the assignments:
+If the program is run with valid parameters, a table is printed to stdout with the driver assignments, SS for each assignment, and a total SS score over all the assignments:
 
 ```
 ➜ node main.js assign --address-file ./address-file.txt -d ./driver-file.txt
@@ -127,10 +129,23 @@ Options:
   -h, --help               display help for command
 ```
 
+## Approach
+
+My approach to solving this problem was to break it down into manageable chunks, get that chunk working and move to the next chunk:
+
+- `Address Parsing`: Find an appropriate npm package designed for parsing addresses.
+- `CLI`: Find an appropriate npm package designed to build a CLI application.
+- `File reading`: Work with the CLI module to get file reading implemented. The file reads can be synchronous since all the data needs to be stored in memory before we will be able to process it.
+- `Calculate SS`: Each driver will have a SS for each destination. This is trivial and can be implemented quickly without external modules other than the address parser.
+- `Optimal Routing Assignment`: We will need to find the assignment that yields the largest total SS. A brief Google search led me to the [Hungarian Algorithm](https://en.wikipedia.org/wiki/Hungarian_algorithm) which is implemented by the Node module [`munkres-js`](https://github.com/addaleax/munkres-js). The Hungarian Algorithm is designed to solve the assignment problem, but we will need to convert our SS to a cost matrix in order to get it to work properly (see: [Converting Suitability Scores matrix to a cost matrix](#converting-suitability-scores-matrix-to-a-cost-matrix) for a deeper explanation).
+- `Print results`: The output should look nice and match the specification. Had a TIL moment yesterday when I realized the `console` module has a `.table` method!
+- `Handle unbalanced quantity of drivers and routes`: Add some additional logic to handle the case where there aren't enough drivers for the routes and vice versa, so this data can be printed to stdout.
+- `Write a bunch of tests`
+
 ## Assumptions
 
-- Malformed input is explicitly unhandled as per the specification, but handling of both upper and lower case names is certainly handled.
-- The street name will be determined by a library that parses addresses into address parts. The length of the street name will include whitespace characters. For example:
+1. Malformed input is explicitly unhandled as per the specification, but handling of both upper and lower case names is certainly handled.
+2. The street name will be determined by a library that parses addresses into address parts. The length of the street name will include whitespace characters. For example:
 
 ```
 input:              '123 NW Peanut Butter Blvd, Portland, OR, 12345'
@@ -139,9 +154,9 @@ street name:        'Peanut Butter'
 street name length: 13
 ```
 
-- The set of vowels used to determine SS will be: `(a, e, i, o, u)`
-- The set of consonant used to determine SS will be: `(b,c,d,f,g,h,j,k,l,m,n,p,q,r,s,t,v,w,x,y,z)`
-- The length of the name will include whitespace characters. For example:
+3. The set of vowels used to determine SS will be: `(a, e, i, o, u)`
+1. The set of consonant used to determine SS will be: `(b,c,d,f,g,h,j,k,l,m,n,p,q,r,s,t,v,w,x,y,z)`
+1. The length of the name will include whitespace characters. For example:
 
 ```
 input:           Steve Bob Pająk      # NOTE: 'ą' does not increment vowel or consonant counts
@@ -149,37 +164,15 @@ input:           Steve Bob Pająk      # NOTE: 'ą' does not increment vowel or 
 vowel count:     4
 consonant count: 8
 length:          15
-
 ```
 
-- All data will be stored in memory, i.e. an external database will not be considered as part of this solution.
-- Output/results will be routed to stdout.
-- Handle the case where there are less drivers than routes
-- Handle the case where there are less routes than drivers
-- Testing in this submission will be non-exhaustive, and should provide the reviewer with an idea of how I would approach testing.
-- The Hungarian Algorithm is O(n^3), and running in javascript introduces additional overhead. For the purpose of this exercise it is assumed the included npm package is the best solution to this problem even though with files of length 1000, the human runtime is close to 10 minutes (1B operations at worst). ~97% of runtime was attributed to the algorithm when I ran benchmarking (using `--prof`).
-- Grace will be given to an experienced engineer with no Typescript experience. :beers:
-
-## Approach
-
-My approach to solving this problem was to break it down into manageable chunks:
-
-- `Address Parsing`: Find an appropriate npm package designed for parsing addresses.
-- `CLI`: Find an appropriate npm package designed to build a CLI application.
-- `File reading`: Work with the CLI module to get file reading implemented. The file reads can be synchronous since all the data needs to be stored in memory before we will be able to process it.
-- `Calculate SS`: Each driver will have a SS for each destination. This is trivial and can be implemented quickly without external modules other than the address parser.
-- `Optimal Routing Assignment`: We will need to find the assignment that yields the largest total SS. A brief google search led me to the [Hungarian Algorithm](https://en.wikipedia.org/wiki/Hungarian_algorithm) which is implemented by the Node module [`munkres-js`](https://github.com/addaleax/munkres-js). The Hungarian Algorithm is designed to solve the assignment problem, but we will need to adjust our SS to a cost matrix in order to get it to work properly.
-- `Print results`: The output should look nice and match the specification. Had a TIL moment yesterday when I realized the `console` module has a `.table` method!
-- `Handle unbalanced quantity of drivers and routes`: Add some additional logic to handle the case where there aren't enough drivers for the routes and vice versa, so this data can be printed to stdout.
-- `Write a bunch of tests`
-
-### Calculating the Suitability Score (per the spec)
-
-- If the length of the shipment's destination street name is even, the base suitability score (SS) is the number of vowels in the driver’s
-  name multiplied by 1.5.
-- If the length of the shipment's destination street name is odd, the base SS is the number of consonants in the driver’s name multiplied
-  by 1.
-- If the length of the shipment's destination street name shares any common factors (besides 1) with the length of the driver’s name, the SS is increased by 50% above the base SS.
+6. All data will be stored in memory, i.e. an external database will not be considered as part of this solution.
+1. Output/results will be routed to stdout.
+1. Handle the case where there are less drivers than routes
+1. Handle the case where there are less routes than drivers
+1. Testing in this submission will be non-exhaustive, and should provide the reviewer with an understanding of how I would approach testing.
+1. Time complexity of the Hungarian Algorithm is `O(n^3)`, and running in Javascript introduces additional overhead. For the purpose of this exercise it is assumed the included npm package is the best solution to this problem even though with files of length 1000, the human runtime is close to 10 minutes (1B operations at worst). ~97% of runtime was attributed to the algorithm when I ran benchmarking (using `--prof`).
+1. Grace will be given to an experienced engineer with no professional Typescript experience. :beers:
 
 ## Build
 
@@ -192,7 +185,7 @@ Before you begin, make sure you have met the following requirements:
 
 ### Downloading the Code
 
-1. Clone the git repository for [`ShipmentAssigner`](https://github.com/carrbs/shipment-assigner):
+1. Clone the git repository for `ShipmentAssigner` (https://github.com/carrbs/shipment-assigner):
 
 ```
 ➜  git clone git@github.com:carrbs/shipment-assigner.git
@@ -200,11 +193,13 @@ Before you begin, make sure you have met the following requirements:
 
 ### Building and Running the Application
 
+(NOTE: For more information on Usage, see the [Usage](#usage--example) section above)
+
 1. Open a terminal.
 2. Navigate to the directory where you cloned the `ShipmentAssigner` repository.
 3. Run `npm install` to install the necessary dependencies.
-4. Run `tsc` to genete the Javascript files.
-5. Run the application with the command `node main.js --address-file ./address-file.txt -d ./driver-file.txt`, replacing `./address-file.txt` and `./driver-file.txt` with the paths to your own address and driver files.
+4. Run `tsc` to generate the Javascript files.
+5. Run the application with the command `node main.js assign --address-file ./address-file.txt -d ./driver-file.txt`, replacing `./address-file.txt` and `./driver-file.txt` with the paths to your own address and driver files.
 
 Example:
 
@@ -215,8 +210,6 @@ Example:
 ➜ node main.js assign --address-file ./address-file.txt -d ./driver-file.txt
 ```
 
-If you would like to generate
-
 ## Running tests
 
 Jest from this project is configured to run against only the generated .js files, so be sure to run `tsc` before running the tests.
@@ -225,3 +218,33 @@ Jest from this project is configured to run against only the generated .js files
 ➜ tsc
 ➜ npm test
 ```
+
+## Understanding the Algorithms
+
+### Calculating the Suitability Score (per the spec)
+
+- If the length of the shipment's destination street name is even, the base suitability score (SS) is the number of vowels in the driver’s
+  name multiplied by 1.5.
+- If the length of the shipment's destination street name is odd, the base SS is the number of consonants in the driver’s name multiplied
+  by 1.
+- If the length of the shipment's destination street name shares any common factors (besides 1) with the length of the driver’s name, the SS is increased by 50% above the base SS.
+
+### Converting Suitability Scores matrix to a cost matrix
+
+The Hungarian algorithm's result favors small numbers, and makes assignments so that the overall SS is as small as possible. We need the opposite of this. Our SS matrix can be thought of as a profit matrix, but we can make a conversion of our matrix of driver's and suitabilty scores to a cost matrix where the cells represent the cost we would need to pay (i.e. the inverse of our SS matrix). The conversion is done by subtracting all the SS from the maximum SS in the set of all SS. For example:
+
+Given the SS matrix for this input:
+
+| Name | Fremont | Burnside |
+| ---- | ------- | -------- |
+| Bob  | 10      | 15       |
+| Jane | 20      | 25       |
+
+The maximum SS is `25`. We can subtract the SS from this maximum to find our cost matrix:
+
+| Name | Fremont | Burnside |
+| ---- | ------- | -------- |
+| Bob  | 15      | 10       |
+| Jane | 5       | 0        |
+
+Now we can apply the Hungarian algorithm to this matrix to yield the optimal assignments.
